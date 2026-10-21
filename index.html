@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Music and Memory Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+
+/* Layout: a single quiet column, like a lab test booklet; the study word sits alone in the centre of an empty screen. */
+:root {
+  --paper: #f6f7f5;
+  --card: #ffffff;
+  --ink: #1d2422;
+  --muted: #5d6965;
+  --line: #d9dfdc;
+  --accent: #2c5d63;      /* deep slate teal */
+  --accent-ink: #ffffff;
+  --accent-soft: #e2ecec;
+  --good: #2f6b3f;
+  --warn: #8a5a12;
+  --warn-soft: #fbf1df;
+  --bad: #9b2f2f;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141817; --card: #1c2120; --ink: #e8ecea; --muted: #9aa6a2; --line: #2e3533;
+    --accent: #7fb5ba; --accent-ink: #0f1514; --accent-soft: #23302f;
+    --good: #7cc08c; --warn: #e2b264; --warn-soft: #2d2618; --bad: #e08a8a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141817; --card: #1c2120; --ink: #e8ecea; --muted: #9aa6a2; --line: #2e3533;
+  --accent: #7fb5ba; --accent-ink: #0f1514; --accent-soft: #23302f;
+  --good: #7cc08c; --warn: #e2b264; --warn-soft: #2d2618; --bad: #e08a8a;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 17px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+#app { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; min-height: 100%; }
+h1, h2 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.45rem; }
+p { margin: 0; max-width: 65ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+label { font-weight: 700; display: block; margin-bottom: 4px; }
+.hint { font-size: 0.9rem; color: var(--muted); font-weight: 400; }
+input[type=text], input[type=number], select {
+  font: inherit; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; width: 100%; max-width: 100%;
+}
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button {
+  font: inherit; font-weight: 700; cursor: pointer; border-radius: 8px; padding: 11px 18px;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+}
+button.ghost { background: transparent; color: var(--accent); }
+button.small { padding: 6px 12px; font-size: 0.9rem; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.notice { border-radius: 8px; padding: 12px 14px; background: var(--warn-soft); color: var(--ink); border: 1px solid var(--warn); }
+.notice strong { color: var(--warn); }
+.timer { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 1rem; color: var(--muted); }
+.bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); width: 0; }
+
+/* Study / blank screens */
+.stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; min-height: 60vh; text-align: center; }
+.word { font-family: var(--font-display); font-size: clamp(2.6rem, 11vw, 4.8rem); font-weight: 500; letter-spacing: 0.01em; }
+.blank { min-height: 70vh; }
+.scorebig { font-family: var(--font-display); font-size: 3.2rem; line-height: 1; font-variant-numeric: tabular-nums; color: var(--accent); }
+.scorebig span { font-size: 1.4rem; color: var(--muted); }
+.track-block { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.track-block:last-of-type { border-bottom: 0; }
+input[type=file] { font: inherit; max-width: 100%; }
+.score-list { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; font-variant-numeric: tabular-nums; }
+.score-list b { font-family: var(--font-mono); }
+.wordgrid { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 12px; }
+.wordgrid li { font-family: var(--font-display); font-size: clamp(1.1rem, 3.6vw, 1.7rem); font-weight: 500; overflow-wrap: anywhere; }
+@media (max-width: 520px) { .wordgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Recall chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); border-radius: 999px; padding: 5px 6px 5px 14px; font-weight: 700; }
+.chip button { padding: 0 8px; border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; line-height: 1.4; }
+
+/* Rating scale */
+.scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.scale button { padding: 10px 0; background: var(--paper); color: var(--ink); border: 1px solid var(--line); font-family: var(--font-mono); }
+.scale button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.scale-ends { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); }
+
+/* Order strip */
+.order { display: flex; flex-wrap: wrap; gap: 6px; }
+.order span { font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+.order span.done { background: var(--accent-soft); border-color: transparent; }
+.order span.now { border-color: var(--accent); color: var(--accent); }
+
+/* Results table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 0.92rem; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.num { font-family: var(--font-mono); }
+tr:last-child td { border-bottom: 0; }
+.pill { font-family: var(--font-mono); font-size: 0.75rem; border-radius: 999px; padding: 2px 8px; }
+.pill.ok { background: var(--accent-soft); color: var(--good); }
+.pill.part { background: var(--warn-soft); color: var(--warn); }
+textarea { width: 100%; min-height: 160px; font-family: var(--font-mono); font-size: 0.8rem; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+
+<script>
+/* =====================================================================
+   SETUP: your Google Apps Script web app URL.
+   ===================================================================== */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8FTAQm3P9MKwcrn-XhY5QzQ0AnOxgXwaXc4ygzfcXoehA4FGYaRgqGLizHYVUEvRXQA/exec";
+
+const STUDY_ID = "music-recall-v1";
+const TIMING = { studySec: 120, blankSec: 60, recallSec: 120 };
+
+const CONDITIONS = {
+  S:  { label: "Silence",                 lyrics: null, tempo: null,   genre: null },
+  SL: { label: "Slow song, with lyrics",  lyrics: 1,    tempo: "slow", genre: "pop" },
+  SI: { label: "Slow song, instrumental", lyrics: 0,    tempo: "slow", genre: "classical" },
+  FL: { label: "Fast song, with lyrics",  lyrics: 1,    tempo: "fast", genre: "pop" },
+  FI: { label: "Fast song, instrumental", lyrics: 0,    tempo: "fast", genre: "classical" },
+};
+const TRACKS = {
+  SL: { title: "Someone Like You – Adele", bpm: 67.5, file: "someone-like-you.m4a" },
+  SI: { title: "Adagio in G minor – Albinoni", bpm: null, file: "albinoni-adagio.m4a" },
+  FL: { title: "Shake It Off – Taylor Swift", bpm: 160, file: "shake-it-off.m4a" },
+  FI: { title: "Sonata for Two Pianos K. 448, I – Mozart", bpm: null, file: "mozart-k448.m4a" },
+};
+// Cyclic Latin square; each participant gets one row at random.
+const ORDERS = [
+  ["S", "SL", "SI", "FL", "FI"],
+  ["SL", "SI", "FL", "FI", "S"],
+  ["SI", "FL", "FI", "S", "SL"],
+  ["FL", "FI", "S", "SL", "SI"],
+  ["FI", "S", "SL", "SI", "FL"],
+];
+const LISTS = {
+  A: ["apple","blanket","candle","doctor","engine","forest","garden","hammer","island","jacket","kettle","ladder","mirror","needle","orange","pillow","rabbit","saddle","tunnel","wallet"],
+  B: ["anchor","basket","castle","desert","feather","guitar","helmet","insect","jungle","lemon","magnet","napkin","oven","pencil","river","salad","ticket","violin","window","zipper"],
+  C: ["bottle","camera","dragon","eagle","farmer","glove","harbour","iron","kitten","lizard","marble","nurse","ocean","parrot","rocket","shovel","tiger","umbrella","valley","wagon"],
+  D: ["bridge","carpet","dentist","elbow","fountain","goat","hotel","jewel","kitchen","lamp","monkey","nest","onion","pirate","quilt","rope","sofa","tomato","vase","whistle"],
+  E: ["beach","cabin","drum","envelope","fence","giraffe","honey","igloo","jar","knife","lion","meadow","notebook","oyster","puppet","robot","spoon","tractor","volcano","wheel"],
+};
+const LIST_ORDER = ["A","B","C","D","E"];   // list follows the round's position in the order
+
+/* ---------- Helpers ---------- */
+const app = document.getElementById("app");
+let timers = [], player = null, volume = 1, person = null, wakeLock = null;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(STUDY_ID + "." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(STUDY_ID + "." + k, JSON.stringify(v)); } catch (e) {} },
+};
+function h(html) { app.innerHTML = html; window.scrollTo(0, 0); }
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function pad(n) { return String(n).padStart(2, "0"); }
+function fmt(sec) { sec = Math.max(0, Math.ceil(sec)); return Math.floor(sec / 60) + ":" + pad(sec % 60); }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function norm(w) { return String(w).toLowerCase().trim().replace(/[^a-z]/g, ""); }
+function nameKey(n) { return String(n).trim().toLowerCase().replace(/\s+/g, " "); }
+const ALIASES = { harbor: "harbour" };
+function matchKey(w) { w = norm(w); w = ALIASES[w] || w; return w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w; }
+function clearTimers() { timers.forEach(t => clearInterval(t)); timers = []; stopAudio(); }
+function stopAudio() { if (player) { try { player.pause(); player.currentTime = 0; } catch (e) {} } player = null; }
+function playTrack(cond) {
+  stopAudio();
+  player = new Audio(TRACKS[cond].file);
+  player.loop = true; player.volume = volume;
+  player.play().catch(() => { if (person) person.audioErrors = (person.audioErrors || 0) + 1; });
+}
+async function keepAwake() { try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {} }
+
+/* ---------- People saved on this device ---------- */
+function people() { return store.get("people", {}); }
+function savePerson() { const all = people(); all[nameKey(person.name)] = person; store.set("people", all); }
+function order() { return ORDERS[person.orderRow - 1]; }
+function doneConds() { return Object.keys(person.done || {}); }
+function remaining() { return order().filter(c => !person.done[c]); }
+
+/* ---------- Results sheet ---------- */
+let pending = store.get("pending", []);
+let sending = false;
+const configured = /^https:\/\/script\.google(usercontent)?\.com\//.test(SCRIPT_URL);
+async function flush() {
+  if (!configured || sending) return pending.length === 0;
+  sending = true;
+  while (pending.length) {
+    try {
+      await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(pending[0]) });
+      pending.shift(); store.set("pending", pending);
+    } catch (e) { break; }
+  }
+  sending = false;
+  return pending.length === 0;
+}
+function queueRow(row) { pending.push(row); store.set("pending", pending); flush(); }
+window.addEventListener("online", flush);
+
+// Ask the sheet which rounds this name has already finished (works once the updated script is deployed).
+async function lookupName(name) {
+  if (!configured) return null;
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 7000);
+  try {
+    const r = await fetch(SCRIPT_URL + "?name=" + encodeURIComponent(nameKey(name)), { signal: ctl.signal });
+    const d = await r.json();
+    return d && d.ok && d.found ? d : null;
+  } catch (e) { return null; } finally { clearTimeout(t); }
+}
+
+/* ---------- Screens ---------- */
+function renderWelcome() {
+  clearTimers();
+  person = null;
+  const warn = configured ? "" : `<div class="notice"><strong>Results are not connected yet.</strong> Nothing will be saved.</div>`;
+  h(`
+    <header class="stack">
+      <span class="eyebrow">HW0218 · Student research study</span>
+      <h1>Music and memory</h1>
+      <p>We're studying how background music affects how well people remember words.</p>
+    </header>
+    ${warn}
+    <section class="panel">
+      <h2>What you'll do</h2>
+      <p>Five short rounds of about 6 minutes each. In each one you'll see 20 words for 2 minutes, rest for 1 minute, then type every word you remember. Some rounds have music, one is silent.</p>
+      <p>You can skip a round or stop between rounds and come back later. Just enter the <strong>same name</strong> next time and you'll continue where you left off.</p>
+      <p><strong>You'll need:</strong> headphones or earphones set to a comfortable volume, and a quiet place. Turn on Do Not Disturb. A laptop is easiest for typing.</p>
+    </section>
+    <form class="panel" id="nform" novalidate>
+      <div>
+        <label for="name">Your name <span class="hint">use your full name so it's different from other participants</span></label>
+        <input id="name" type="text" autocomplete="name" maxlength="80">
+      </div>
+      <p id="nerr" class="muted" role="alert"></p>
+      <div class="row"><button type="submit" id="nbtn">Continue</button></div>
+    </form>
+  `);
+  document.getElementById("nform").addEventListener("submit", async e => {
+    e.preventDefault();
+    const name = document.getElementById("name").value.trim().replace(/\s+/g, " ");
+    const err = document.getElementById("nerr"), btn = document.getElementById("nbtn");
+    if (name.length < 2) { err.textContent = "Enter your name."; return; }
+    btn.disabled = true; err.textContent = "Checking for earlier rounds…";
+    const local = people()[nameKey(name)];
+    const remote = await lookupName(name);
+    btn.disabled = false; err.textContent = "";
+    person = local ? structuredClone(local) : null;
+    if (remote) {
+      if (!person) person = { name, orderRow: Number(remote.order_row) || 1, questionnaire: remote.questionnaire || null, done: {} };
+      (remote.rounds || []).forEach(r => { if (CONDITIONS[r.condition] && !person.done[r.condition]) person.done[r.condition] = { correct: Number(r.correct), position: Number(r.position) }; });
+    }
+    if (!person) person = { name, orderRow: 1 + Math.floor(Math.random() * 5), questionnaire: null, done: {} };
+    person.name = person.name || name;
+    savePerson();
+    if (!person.questionnaire) renderQuestions();
+    else if (doneConds().length) renderReturning();
+    else startNext();
+  });
+}
+
+function renderQuestions() {
+  h(`
+    <header class="stack">
+      <span class="eyebrow">${esc(person.name)}</span>
+      <h1>A few questions</h1>
+    </header>
+    <form class="panel" id="qform" novalidate>
+      <div><label for="age">Age</label><input id="age" type="number" min="16" max="80" inputmode="numeric" style="max-width:200px"></div>
+      <div>
+        <label for="habit">How often do you listen to music while studying?</label>
+        <select id="habit">
+          <option value="">Choose one</option>
+          <option value="1">Never</option><option value="2">Rarely</option><option value="3">Sometimes</option><option value="4">Often</option><option value="5">Always</option>
+        </select>
+      </div>
+      <div>
+        <label for="habitType">When you do, what do you usually listen to?</label>
+        <select id="habitType">
+          <option value="">Choose one</option>
+          <option>Songs with lyrics</option><option>Instrumental music</option><option>A mix of both</option><option>I don't listen to music</option>
+        </select>
+      </div>
+      <p id="qerr" class="muted" role="alert"></p>
+      <div class="row"><button type="submit">Start round 1</button><button type="button" class="ghost" id="back">Back</button></div>
+    </form>
+  `);
+  document.getElementById("back").onclick = renderWelcome;
+  document.getElementById("qform").addEventListener("submit", e => {
+    e.preventDefault();
+    const age = parseInt(document.getElementById("age").value, 10);
+    const habit = document.getElementById("habit").value;
+    const err = document.getElementById("qerr");
+    if (!age || age < 16) return err.textContent = "Enter your age.";
+    if (!habit) return err.textContent = "Choose how often you study with music.";
+    person.questionnaire = { age, studyMusicHabit: Number(habit), studyMusicType: document.getElementById("habitType").value };
+    savePerson();
+    startNext();
+  });
+}
+
+function progressStrip(currentCond) {
+  return `<div class="order">${order().map((c, i) => {
+    const cls = person.done[c] ? "done" : c === currentCond ? "now" : "";
+    return `<span class="${cls}">Round ${i + 1}${person.done[c] ? " ✓" : ""}</span>`;
+  }).join("")}</div>`;
+}
+
+function renderReturning() {
+  clearTimers();
+  const left = remaining();
+  if (!left.length) return renderDone();
+  h(`
+    <header class="stack">
+      <span class="eyebrow">${esc(person.name)}</span>
+      <h1>Welcome back</h1>
+      <p>You've finished ${doneConds().length} of 5 rounds. ${left.length} to go.</p>
+      ${progressStrip(null)}
+    </header>
+    <div class="row"><button id="go">Continue with round ${order().indexOf(left[0]) + 1}</button><button class="ghost" id="notme">This isn't me</button></div>
+  `);
+  document.getElementById("go").onclick = () => { keepAwake(); startNext(); };
+  document.getElementById("notme").onclick = renderWelcome;
+}
+
+// Next unfinished round, after `afterCond` if given (so skipping moves forward).
+function startNext(afterCond) {
+  const ord = order(), left = remaining();
+  if (!left.length) return renderDone();
+  let next = left[0];
+  if (afterCond) {
+    const from = ord.indexOf(afterCond);
+    next = ord.slice(from + 1).find(c => !person.done[c]);
+    if (!next) return renderLater(true);
+  }
+  keepAwake();
+  renderPrep(next);
+}
+
+function renderPrep(cond) {
+  clearTimers();
+  const pos = order().indexOf(cond) + 1;
+  h(`
+    <header class="stack">
+      <span class="eyebrow">${esc(person.name)} · Round ${pos} of 5</span>
+      <h1>${cond === "S" ? "Silent round" : "Music round"}</h1>
+      ${progressStrip(cond)}
+    </header>
+    <section class="panel">
+      <p>${cond === "S" ? "No music this time. Keep your headphones on." : "Music will play in your headphones while the words are on screen."}</p>
+      <p class="muted">When you press Begin, 20 words appear straight away. You have 2 minutes to remember as many as you can.</p>
+      <div class="row"><button id="begin">Begin</button><button class="ghost" id="skip">Skip this round</button></div>
+    </section>
+  `);
+  if (cond !== "S") { const pre = new Audio(TRACKS[cond].file); pre.preload = "auto"; }
+  document.getElementById("begin").onclick = () => runStudy(cond);
+  document.getElementById("skip").onclick = () => startNext(cond);
+}
+
+function runStudy(cond) {
+  clearTimers();
+  const pos = order().indexOf(cond) + 1;
+  const list = LIST_ORDER[pos - 1];
+  const words = shuffle(LISTS[list]);
+  if (cond !== "S") playTrack(cond);
+  const total = TIMING.studySec * 1000, start = performance.now();
+  h(`
+    <div class="stage">
+      <p class="muted">Remember as many of these words as you can.</p>
+      <ul class="wordgrid">${words.map(w => `<li>${esc(w)}</li>`).join("")}</ul>
+      <div style="width:min(320px,100%)" class="stack">
+        <div class="bar"><i id="bar"></i></div>
+        <div class="timer"><span id="left">${fmt(total / 1000)}</span> left</div>
+      </div>
+    </div>
+  `);
+  const bar = document.getElementById("bar"), left = document.getElementById("left");
+  const tick = setInterval(() => {
+    const el = performance.now() - start;
+    bar.style.width = Math.min(100, (el / total) * 100) + "%";
+    left.textContent = fmt((total - el) / 1000);
+    if (el >= total) { clearInterval(tick); stopAudio(); runBlank(cond, list); }
+  }, 100);
+  timers.push(tick);
+}
+
+function runBlank(cond, list) {
+  clearTimers();
+  h(`<div class="stage blank"><h2>Rest for one minute</h2><p class="muted">Just relax. Recall starts automatically when the timer ends.</p><span class="timer" id="bl"></span></div>`);
+  const total = TIMING.blankSec * 1000, start = performance.now(), bl = document.getElementById("bl");
+  const tick = setInterval(() => {
+    const el = performance.now() - start;
+    bl.textContent = fmt((total - el) / 1000);
+    if (el >= total) { clearInterval(tick); runRecall(cond, list); }
+  }, 250);
+  timers.push(tick);
+}
+
+function runRecall(cond, list) {
+  clearTimers();
+  const typed = [];
+  const pos = order().indexOf(cond) + 1;
+  const total = TIMING.recallSec * 1000, start = performance.now();
+  h(`
+    <header class="stack">
+      <span class="eyebrow">Round ${pos} of 5 · Recall</span>
+      <h1>Type every word you remember</h1>
+      <p class="muted">Press Enter after each word. Spelling doesn't need to be perfect.</p>
+    </header>
+    <section class="panel">
+      <div class="row" style="justify-content:space-between">
+        <span class="timer" id="rleft">${fmt(total / 1000)}</span>
+        <span class="timer"><span id="rcount">0</span> words</span>
+      </div>
+      <div class="bar"><i id="rbar"></i></div>
+      <input id="rin" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="enter" placeholder="Type a word, then press Enter" aria-label="Recalled word">
+      <div class="chips" id="chips"></div>
+    </section>
+  `);
+  const rin = document.getElementById("rin"), chips = document.getElementById("chips");
+  rin.focus();
+  const draw = () => {
+    chips.innerHTML = typed.map((w, i) => `<span class="chip">${esc(w)}<button aria-label="Remove ${esc(w)}" data-i="${i}">×</button></span>`).join("");
+    document.getElementById("rcount").textContent = typed.length;
+  };
+  const add = () => {
+    rin.value.split(/[,\s]+/).map(s => s.trim()).filter(Boolean).forEach(w => { if (!typed.some(t => norm(t) === norm(w))) typed.push(w); });
+    rin.value = ""; draw();
+  };
+  rin.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(); } });
+  chips.addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (b) { typed.splice(+b.dataset.i, 1); draw(); rin.focus(); } });
+  const rleft = document.getElementById("rleft"), rbar = document.getElementById("rbar");
+  const tick = setInterval(() => {
+    const el = performance.now() - start;
+    rleft.textContent = fmt((total - el) / 1000);
+    rbar.style.width = Math.min(100, (el / total) * 100) + "%";
+    if (el >= total) { clearInterval(tick); add(); finishTrial(cond, list, typed); }
+  }, 250);
+  timers.push(tick);
+}
+
+function scoreRecall(list, typed) {
+  const targets = new Map(LISTS[list].map(w => [matchKey(w), w]));
+  const hit = new Set(), intrusions = [];
+  typed.forEach(w => { const k = matchKey(w); if (targets.has(k)) hit.add(targets.get(k)); else intrusions.push(w); });
+  return { correct: hit.size, intrusions };
+}
+
+function finishTrial(cond, list, typed) {
+  const s = scoreRecall(list, typed);
+  const trial = { cond, list, position: order().indexOf(cond) + 1, recalled: typed, correct: s.correct, intrusions: s.intrusions };
+  if (cond === "S") { record(trial, null); }
+  else renderRatings(trial);
+}
+
+function record(trial, ratings) {
+  const c = CONDITIONS[trial.cond], q = person.questionnaire || {};
+  queueRow({
+    study: STUDY_ID, session_id: nameKey(person.name), participant: person.name, order_row: person.orderRow, assigned: "random",
+    age: q.age, training_years: "", study_music_habit: q.studyMusicHabit, study_music_type: q.studyMusicType,
+    position: trial.position, condition: trial.cond, lyrics: c.lyrics, tempo: c.tempo, genre: c.genre,
+    track: trial.cond === "S" ? null : TRACKS[trial.cond].title, bpm: trial.cond === "S" ? null : TRACKS[trial.cond].bpm,
+    word_list: trial.list, correct: trial.correct, intrusions: trial.intrusions.length,
+    familiarity: ratings?.familiarity ?? "", enjoyment: ratings?.enjoyment ?? "", energy: ratings?.energy ?? "",
+    recalled_words: trial.recalled.join(" "), audio_errors: person.audioErrors || 0,
+    device_time: new Date().toISOString(), user_agent: navigator.userAgent.slice(0, 200),
+  });
+  person.done[trial.cond] = { correct: trial.correct, position: trial.position };
+  savePerson();
+  renderBreak(trial);
+}
+
+function renderRatings(trial) {
+  clearTimers();
+  const ratings = { familiarity: null, enjoyment: null, energy: null };
+  const scale = (key, q, lo, hi) => `
+    <div class="stack" style="gap:6px">
+      <label id="lab_${key}">${q}</label>
+      <div class="scale" role="group" aria-labelledby="lab_${key}">
+        ${[1,2,3,4,5,6,7].map(v => `<button type="button" data-k="${key}" data-v="${v}" aria-pressed="false">${v}</button>`).join("")}
+      </div>
+      <div class="scale-ends"><span>${lo}</span><span>${hi}</span></div>
+    </div>`;
+  h(`
+    <header class="stack">
+      <span class="eyebrow">Round ${trial.position} of 5 · About the music</span>
+      <h1>Rate the music you just heard</h1>
+    </header>
+    <section class="panel">
+      ${scale("familiarity", "How familiar was the music?", "1 · Never heard it", "7 · Know it very well")}
+      ${scale("enjoyment", "How much did you enjoy it?", "1 · Not at all", "7 · Very much")}
+      ${scale("energy", "How energising did it feel?", "1 · Very calming", "7 · Very energising")}
+      <div class="row"><button id="next" disabled>Continue</button></div>
+    </section>
+  `);
+  const next = document.getElementById("next");
+  next.closest(".panel").addEventListener("click", e => {
+    const b = e.target.closest(".scale button"); if (!b) return;
+    ratings[b.dataset.k] = Number(b.dataset.v);
+    app.querySelectorAll(`.scale button[data-k="${b.dataset.k}"]`).forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+    next.disabled = Object.values(ratings).some(v => v == null);
+  });
+  next.onclick = () => record(trial, { ...ratings });
+}
+
+function renderBreak(trial) {
+  clearTimers();
+  const ord = order();
+  const nextCond = ord.slice(ord.indexOf(trial.cond) + 1).find(c => !person.done[c]) || remaining()[0];
+  if (!nextCond) return renderDone();
+  h(`
+    <header class="stack">
+      <span class="eyebrow">${esc(person.name)} · Round ${trial.position} done</span>
+      <h1>Take a short break</h1>
+    </header>
+    <section class="panel">
+      <span class="eyebrow">Round ${trial.position} score</span>
+      <div class="scorebig">${trial.correct}<span> / 20</span></div>
+    </section>
+    <div class="stack">
+      ${progressStrip(null)}
+      <p class="muted">Ready when you are. The next round starts with a fresh list of words.</p>
+    </div>
+    <div class="row"><button id="cont">Continue to round ${ord.indexOf(nextCond) + 1}</button><button class="ghost" id="later">Finish later</button></div>
+  `);
+  document.getElementById("cont").onclick = () => renderPrep(nextCond);
+  document.getElementById("later").onclick = () => renderLater(false);
+}
+
+function pendingBlock() {
+  return `<div class="notice" id="pend"><strong>Some results haven't been sent yet.</strong> Check your internet connection, then press Send. <div class="row" style="margin-top:10px"><button class="small" id="retry">Send results</button><span id="rmsg" class="muted"></span></div></div>`;
+}
+function wirePending() {
+  const r = document.getElementById("retry"); if (!r) return;
+  r.onclick = async () => {
+    const ok = await flush();
+    document.getElementById("rmsg").textContent = ok ? "Sent. Thank you!" : "Still couldn't send. Try again in a moment.";
+    if (ok) setTimeout(() => document.getElementById("pend")?.remove(), 1500);
+  };
+}
+
+async function renderLater(reachedEnd) {
+  clearTimers();
+  try { wakeLock?.release(); } catch (e) {}
+  const ok = await flush();
+  const left = remaining().length;
+  h(`
+    <header class="stack">
+      <span class="eyebrow">${esc(person.name)}</span>
+      <h1>${reachedEnd ? `${left} round${left === 1 ? "" : "s"} left` : "Saved. See you later"}</h1>
+      <p>You've finished ${doneConds().length} of 5 rounds. To do the rest, come back to this page and enter <strong>${esc(person.name)}</strong> exactly as before.</p>
+      ${progressStrip(null)}
+    </header>
+    ${configured && !ok ? pendingBlock() : ""}
+    <div class="row"><button id="now">Do the remaining rounds now</button><button class="ghost" id="home">Close</button></div>
+  `);
+  wirePending();
+  document.getElementById("now").onclick = () => startNext();
+  document.getElementById("home").onclick = renderWelcome;
+}
+
+async function renderDone() {
+  clearTimers();
+  try { wakeLock?.release(); } catch (e) {}
+  const ok = await flush();
+  const ord = order();
+  const rows = ord.map((c, i) => `<span>Round ${i + 1}${c === "S" ? " · silence" : ""}</span><b>${person.done[c] ? person.done[c].correct + " / 20" : "–"}</b>`).join("");
+  h(`
+    <header class="stack">
+      <span class="eyebrow">${esc(person.name)} · All 5 rounds done</span>
+      <h1>Thank you for taking part</h1>
+      <p>${ok && configured ? "Your results have been sent. You can close this page." : configured ? "" : "This test isn't connected to a results sheet, so nothing was saved."}</p>
+    </header>
+    ${configured && !ok ? pendingBlock() : ""}
+    <section class="panel">
+      <span class="eyebrow">Your scores</span>
+      <div class="score-list">${rows}</div>
+    </section>
+  `);
+  wirePending();
+}
+
+if (pending.length) flush();
+renderWelcome();
+</script>
+
+</body>
+</html>
